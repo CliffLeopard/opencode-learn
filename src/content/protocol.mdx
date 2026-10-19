@@ -1,0 +1,14 @@
+`packages/protocol` 拥有 HTTP 操作和传输错误。`specs/v2/README.md` 写明这些操作由 Server 的 `HttpApi` 收成对外接口。生成出来的 client 跟着那份公开 API，不跟着 Core 的内部函数。
+
+<Callout variant="key">
+  改了公开的 Protocol 或 Server `HttpApi` 之后，要在 `packages/client` 运行 `bun run generate`。不要手改生成的 client。
+  —— <code>opencode/AGENTS.md</code>
+</Callout>
+
+## 操作和错误
+
+操作的分组从 `packages/protocol/src/api.ts` 看起，传输错误从 `errors.ts` 看起。协议描述「可以调用什么」，不描述一次 step 里面模型调用如何重试。那是 Core 的 runner。
+
+## 和 Schema 的边界
+
+载荷的字段形状留在 Schema。Protocol 引用那些形状来声明端点。两套名字如果出现分歧，以 Schema 的载荷和 Protocol 的端点各管各的那一侧为准，不在正文里合成第三套。

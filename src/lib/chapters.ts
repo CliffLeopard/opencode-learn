@@ -58,7 +58,7 @@ export const chapters: Chapter[] = [
     lede: 'HTTP 操作和传输错误，由 Server 收成对外 API',
     group: '形状与协议',
     keywords: ['protocol', '形状与协议'],
-    status: 'stub',
+    status: 'written',
     source: 'opencode/packages/protocol',
   },
   {
