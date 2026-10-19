@@ -93,7 +93,7 @@ function cacheControl(filePath) {
 }
 
 if (!existsSync(path.join(outDir, 'index.html'))) {
-  console.error('No static build at learn/out/. Run `pnpm run build` first, or `pnpm run preview`.')
+  console.error('No static build at out/. Run `pnpm run build` first, or `pnpm run preview`.')
   process.exit(1)
 }
 
@@ -143,7 +143,7 @@ server.on('error', (error) => {
 })
 
 server.listen(port, host, () => {
-  console.log(`Static preview of learn/out`)
+  console.log(`Static preview of out/`)
   console.log(`  Local:    http://127.0.0.1:${port}`)
   for (const ip of lanAddresses()) {
     console.log(`  Network:  http://${ip}:${port}`)

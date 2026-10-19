@@ -2,14 +2,13 @@
 
 import { Menu, Search } from 'lucide-react'
 
+import { REPO } from '@/lib/repo'
+
 import { Brand } from './brand'
 import { useChrome } from './chrome'
 import { GithubMark } from './github-mark'
 import { ReadingProgress } from './reading-progress'
 import { ThemeToggle } from './theme-toggle'
-
-const REPO =
-  'https://github.com/anomalyco/opencode/tree/4617210822bdbb31e5749751afbfb4584ccedac8'
 
 /** Sticky header: drawer trigger, wordmark, search affordance and controls. */
 export function TopBar() {
@@ -37,7 +36,7 @@ export function TopBar() {
           className="hidden max-w-md flex-1 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-left text-[0.8125rem] text-subtle transition-colors hover:border-accent-line hover:text-muted sm:flex"
         >
           <Search className="size-3.5 flex-none" aria-hidden />
-          <span className="flex-1 truncate">搜索章节、服务键、事件名…</span>
+          <span className="flex-1 truncate">搜索 step、schema、session.inbox…</span>
           <kbd className="rounded border border-line bg-surface-2 px-1.5 py-px font-mono text-[0.65rem] text-subtle">
             Ctrl K
           </kbd>

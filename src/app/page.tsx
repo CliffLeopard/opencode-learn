@@ -12,9 +12,22 @@ import { CommandPalette } from '@/components/site/command-palette'
 import { NavDrawer } from '@/components/site/sidebar'
 import { TopBar } from '@/components/site/top-bar'
 import { chapterGroups, chapters } from '@/lib/chapters'
+import { REPO } from '@/lib/repo'
 
-const REPO =
-  'https://github.com/anomalyco/opencode/tree/4617210822bdbb31e5749751afbfb4584ccedac8'
+const STATS = [
+  { value: String(chapters.length), label: '章节，从全景到术语表', tone: 'accent' },
+  {
+    value: String(chapters.filter((chapter) => chapter.status === 'written').length),
+    label: '已写章节',
+    tone: 'violet',
+  },
+  {
+    value: String(chapters.filter((chapter) => chapter.status === 'stub').length),
+    label: '待写占位',
+    tone: 'lime',
+  },
+  { value: String(chapterGroups.length), label: '阅读分组', tone: 'amber' },
+] as const
 
 const HIGHLIGHTS = [
   {
@@ -96,11 +109,10 @@ export default function LandingPage() {
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-              这是给工程师看的技术图谱。顺序是「框架 → 运行核心 → 能力 → 产品外壳 →
-              工程」，把{' '}
+              这是给工程师看的技术图谱。顺序是形状和 protocol，然后 core 的一步，再 server / client /
+              sdk。把{' '}
               <code className="font-mono text-accent">46172108</code>{' '}
-              这一版每一层讲清楚：插件怎样组成一个正在跑的 agent，一个 step（一次模型调用）里发生了什么，
-              哪些 seam 可以换掉。
+              这一版每一层讲清楚：形状怎样定义一次，一次 step（一次模型调用）里发生了什么，对外接口怎样接到 core。
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -132,12 +144,7 @@ export default function LandingPage() {
           </div>
 
           <dl className="mt-14 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              { value: '17', label: '章节，从全景到术语表', tone: 'accent' },
-              { value: '20+', label: '包分组构成的插件树', tone: 'violet' },
-              { value: '29', label: '可替换的 seam', tone: 'lime' },
-              { value: '3', label: '事件域：会话 / agent / 能力', tone: 'amber' },
-            ].map((stat) => (
+            {STATS.map((stat) => (
               <div
                 key={stat.label}
                 data-tone={stat.tone}
@@ -244,9 +251,14 @@ export default function LandingPage() {
                           <span className="text-[0.875rem] font-medium text-fg group-hover:text-accent">
                             {chapter.nav}
                           </span>
+                          {chapter.status === 'stub' ? (
+                            <span className="ml-auto font-mono text-[0.62rem] tracking-[0.04em] text-subtle">
+                              待写
+                            </span>
+                          ) : null}
                         </span>
                         <span className="mt-1 line-clamp-2 text-[0.75rem] leading-snug text-subtle">
-                          {chapter.title}
+                          {chapter.lede}
                         </span>
                       </Link>
                     </li>
@@ -261,8 +273,9 @@ export default function LandingPage() {
       <footer className="border-t border-line px-5 py-8">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 text-[0.78rem] text-subtle">
           <p>
-            内容提炼自仓库 <code className="font-mono text-muted">docs/</code> 与{' '}
-            <code className="font-mono text-muted">packages/</code> 的现行文档，以源码为准。
+            路径和符号以 OpenCode 提交 <code className="font-mono text-muted">46172108</code> 为准。
+            <code className="font-mono text-muted">specs/v2</code> 与根目录{' '}
+            <code className="font-mono text-muted">AGENTS.md</code> 里的词照那里用。
           </p>
           <a href={REPO} target="_blank" rel="noreferrer" className="hover:text-fg">
             anomalyco/opencode

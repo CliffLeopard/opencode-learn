@@ -92,7 +92,7 @@ export function CommandPalette() {
     if (!records) return []
     const needle = query.trim().toLowerCase()
     if (needle === '') {
-      return records.filter((record) => record.id === '').slice(0, 16)
+      return records.filter((record) => record.id === '')
     }
     return records
       .map((record) => ({ record, rank: score(record, needle) }))
@@ -133,7 +133,7 @@ export function CommandPalette() {
               ref={inputRef}
               value={query}
               onValueChange={setQuery}
-              placeholder="输入关键字：turn / ctx.tools / seam / waterfall …"
+              placeholder="输入关键字：step / schema / session.inbox / packages/core …"
               className="h-12 flex-1 bg-transparent text-[0.9375rem] text-fg outline-none placeholder:text-subtle"
             />
             <kbd className="flex-none rounded border border-line bg-surface-2 px-1.5 py-px font-mono text-[0.65rem] text-subtle">

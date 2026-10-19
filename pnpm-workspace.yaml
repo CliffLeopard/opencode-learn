@@ -1,10 +1,9 @@
-# This file exists to make `learn/` its own pnpm workspace root.
+# This file exists to make this directory its own pnpm workspace root.
 #
-# The surrounding repository has a pnpm-workspace.yaml of its own, and this site
-# is deliberately not one of its packages: it ships no @deepseek-ai/dsh-*
-# package, is excluded from every repository gate, and pins React 19 / Next 16
-# independently of the harness dependency graph. Without this file, pnpm would
-# walk up, resolve the repository workspace, and rewrite the repository lockfile.
+# The site ships no published package, is excluded from every surrounding
+# repository gate, and pins React 19 / Next 16 independently of any parent
+# dependency graph. Without this file, pnpm would walk up, resolve a parent
+# workspace if one exists, and rewrite that lockfile.
 packages: []
 
 minimumReleaseAgeExclude:

@@ -470,7 +470,7 @@
     radial-gradient(40rem 24rem at 90% 2%, var(--glow-b), transparent 60%);
 }
 
-@keyframes dsh-rise {
+@keyframes rise {
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -482,5 +482,5 @@
 }
 
 .animate-rise {
-  animation: dsh-rise 380ms cubic-bezier(0.22, 0.68, 0.32, 1) both;
+  animation: rise 380ms cubic-bezier(0.22, 0.68, 0.32, 1) both;
 }
