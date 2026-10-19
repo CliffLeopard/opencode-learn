@@ -47,7 +47,7 @@ export const chapters: Chapter[] = [
     lede: '领域形状和可持久化事件的载荷',
     group: '形状与协议',
     keywords: ['schema', '形状与协议'],
-    status: 'stub',
+    status: 'written',
     source: 'opencode/packages/schema',
   },
   {
