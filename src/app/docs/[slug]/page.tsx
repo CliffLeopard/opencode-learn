@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import type { ComponentType } from 'react'
 
+import { StubChapter } from '@/components/content/stub-chapter'
 import { Pager } from '@/components/site/pager'
 import { TocRail, type Heading } from '@/components/site/toc-rail'
 import { contentLoaders } from '@/content/registry'
@@ -34,12 +36,18 @@ export async function generateMetadata({
 export default async function ChapterPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const chapter = chapterBySlug.get(slug)
-  const load = contentLoaders[slug]
-  if (!chapter || !load) notFound()
+  if (!chapter) notFound()
 
-  const { default: Content } = await load()
+  const isStub = chapter.status === 'stub'
+  let Content: ComponentType | undefined
+  if (!isStub) {
+    const load = contentLoaders[slug]
+    if (!load) notFound()
+    Content = (await load()).default
+  }
+
   const { prev, next } = neighbours(slug)
-  const headings = toc[slug] ?? []
+  const headings = isStub ? [] : (toc[slug] ?? [])
 
   return (
     <div className="flex min-w-0">
@@ -59,7 +67,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ slug: 
           </header>
 
           <article className="prose-doc">
-            <Content />
+            {isStub ? <StubChapter chapter={chapter} /> : Content ? <Content /> : null}
           </article>
 
           <Pager prev={prev} next={next} />

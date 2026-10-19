@@ -119,11 +119,6 @@ function parseSections(source) {
 const toc = {}
 const searchIndex = []
 
-const normalized = chapters.map((chapter) => ({
-  ...chapter,
-  status: chapter.status ?? 'written',
-}))
-
 const present = new Set(
   (await readdir(contentDir)).filter((name) => name.endsWith('.mdx')).map((name) => name.slice(0, -4)),
 )
@@ -134,12 +129,12 @@ const registrySlugs = new Set(
     (match) => match[1] ?? match[2],
   ),
 )
-const errors = checkCatalog({ chapters: normalized, mdxSlugs: present, registrySlugs })
+const errors = checkCatalog({ chapters, mdxSlugs: present, registrySlugs })
 if (errors.length > 0) {
   throw new Error(errors.join('\n'))
 }
 
-for (const chapter of normalized) {
+for (const chapter of chapters) {
   if (chapter.status === 'stub') {
     toc[chapter.slug] = []
     searchIndex.push({

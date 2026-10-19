@@ -46,6 +46,11 @@ function NavTree() {
                       {chapter.num}
                     </span>
                     <span className="min-w-0 flex-1">{chapter.nav}</span>
+                    {chapter.status === 'stub' ? (
+                      <span className="font-mono text-[0.62rem] tracking-[0.04em] text-subtle">
+                        待写
+                      </span>
+                    ) : null}
                   </Link>
                 </li>
               )
