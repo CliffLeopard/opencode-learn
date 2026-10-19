@@ -8,4 +8,5 @@ export const contentLoaders: Record<string, () => Promise<{ default: ComponentTy
   server: () => import('./server.mdx'),
   client: () => import('./client.mdx'),
   sdk: () => import('./sdk.mdx'),
+  glossary: () => import('./glossary.mdx'),
 }

@@ -1,0 +1,25 @@
+这些词在正文、`AGENTS.md` 和 `specs/v2` 里各只指一件事。
+
+## step
+
+一次逻辑上的模型调用。持久记录只覆盖模型看得见的那一段。它不是一整段用户对话，也不是一次工具循环里的每一次函数返回。
+
+## turn
+
+留给以后的助手回合：从提示被晋升开始，直到会话将要空闲，其中可以包含多个 step。现在的正文不用它指代一次模型调用。也不要写成 provider turn。
+
+## Session
+
+一次可恢复的会话身份。复用同一个 Session ID 会采纳已有会话，而不是再开一个同名的新会话。
+
+## Location
+
+工具、权限和文件系统的放置范围。省略 `Location.workspaceID` 表示隐式本地放置。它不是 Session ID，也不是进程 ID。
+
+## inbox
+
+还没消费的工作。`session.inbox.enqueued` 收入，`session.inbox.delivered` 消费。`session_inbox` 不保留已经投递的历史副本。
+
+## compaction
+
+在一步因为上下文放不下而需要收缩时的选择。`SessionCompaction` 在摘要和原生压缩之间选。原生压缩的供应商机制在 `@opencode/ai` 的 `LLMClient.compact`，不在 Core 里各写一份。

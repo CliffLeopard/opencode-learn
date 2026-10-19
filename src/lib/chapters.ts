@@ -476,7 +476,7 @@ export const chapters: Chapter[] = [
     lede: 'step、turn 这类词各只指一件事',
     group: '工程与词汇',
     keywords: ['glossary', '工程与词汇'],
-    status: 'stub',
+    status: 'written',
     source: 'opencode/AGENTS.md',
   },
 ]
