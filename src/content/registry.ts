@@ -4,4 +4,5 @@ export const contentLoaders: Record<string, () => Promise<{ default: ComponentTy
   overview: () => import('./overview.mdx'),
   schema: () => import('./schema.mdx'),
   protocol: () => import('./protocol.mdx'),
+  core: () => import('./core.mdx'),
 }

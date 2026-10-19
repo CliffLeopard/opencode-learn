@@ -69,7 +69,7 @@ export const chapters: Chapter[] = [
     lede: '会话如何进入、一步如何执行、工具与恢复的边界',
     group: '运行核心',
     keywords: ['core', '运行核心'],
-    status: 'stub',
+    status: 'written',
     source: 'opencode/packages/core',
   },
   {
