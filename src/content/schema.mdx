@@ -1,13 +1,13 @@
-`packages/schema` 拥有公开的领域形状和可持久化事件的载荷。`specs/v2/README.md` 把这件事和 Protocol、Core 分开：HTTP 操作归 Protocol，运行时行为归 Core。
+`packages/schema` 拥有公开的领域 shape 和可持久化事件的载荷。`specs/v2/README.md` 把这件事和 Protocol、Core 分开：HTTP 操作归 Protocol，运行时行为归 Core。
 
 <Callout variant="rule">
-  形状只定义一次。Core 不平行再定义一套事件载荷。
+  shape 只定义一次。Core 不平行再定义一套事件载荷。
 </Callout>
 
 ## 载荷放在哪里
 
-持久事件的类型从 `packages/schema/src` 出发。阅读时先看 `event-log.ts` 和 `durable-event-manifest.ts`，再顺着它们的 import 进入具体载荷。这里只定义形状。谁把一行写进会话，是 `packages/core` 的事。
+持久事件的类型从 `packages/schema/src` 出发。阅读时先看 `event-log.ts` 和 `durable-event-manifest.ts`，再顺着它们的 import 进入具体载荷。这里只定义 shape。谁把一行写进会话，是 `packages/core` 的事。
 
 ## 它不负责什么
 
-Schema 不监听端口，也不推进模型调用。Client 可以读取这些形状。Server 负责把它们装进 HTTP。
+Schema 不监听端口，也不推进模型调用。Client 可以读取这些 shape。Server 负责把它们装进 HTTP。

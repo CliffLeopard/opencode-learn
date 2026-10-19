@@ -1,0 +1,78 @@
+一个 step 是一次逻辑上的模型调用。它的持久记录只覆盖模型看得见的那一段。发出这次调用的函数是 `SessionStep.attempt`，在 `packages/core/src/session/runner/step.ts`。谁在循环里反复调用它，是 `runner/llm.ts` 的 `SessionRunner`。
+
+<Callout variant="rule" title="一次物理尝试，一次 llm.stream">
+  <code>AGENTS.md</code>：每个 Physical Attempt 对应一次明确的 <code>llm.stream(request)</code>。
+  续写之前要重新加载投影出来的历史。不要把编排交给一个只活在内存里的工具循环。
+</Callout>
+
+## attempt 里发生的顺序
+
+`SessionStep.make` 取出 `Bus`、`LLMClient`、`Snapshot` 和 `ToolOutput`。`attempt` 接到的 `input.prepared` 已经是 `SessionModelRequest` 配好的请求，里面有 `request`、`executeTool` 和 `retry`。
+
+<Figure
+  kind="时序图"
+  title="SessionStep.attempt 的一次物理尝试"
+  caption="工具 fiber 在流还没结束时就启动。Step.Ended 要等工具都落定。"
+>
+  <Sequence
+    actors={[
+      { name: 'runner', sub: 'runner/llm.ts', tone: 'accent' },
+      { name: 'step', sub: 'SessionStep.attempt', tone: 'violet' },
+      { name: 'llm', sub: 'LLMClient.stream', tone: 'lime' },
+      { name: 'tool', sub: 'prepared.executeTool', tone: 'rose' },
+    ]}
+    steps={[
+      { type: 'msg', from: 'runner', to: 'step', label: 'attempt' },
+      { type: 'self', at: 'step', label: 'fork snapshots.capture，不挡住请求' },
+      { type: 'msg', from: 'step', to: 'llm', label: 'llm.stream(request, options)' },
+      { type: 'msg', from: 'llm', to: 'step', label: 'text / reasoning / tool-call', style: 'async' },
+      { type: 'msg', from: 'step', to: 'tool', label: 'executeTool', style: 'async' },
+      { type: 'self', at: 'step', label: '等工具 fiber，再 publish Step.Ended 或失败' },
+      { type: 'msg', from: 'step', to: 'runner', label: 'Outcome', style: 'return' },
+    ]}
+  />
+</Figure>
+
+开始时的 snapshot 在 provider 请求飞行期间去抓。本地工具不可能在 `Step.Started` 之前跑，所以抓 snapshot 不挡在请求前面。`providerExecuted` 的 tool-call 不在这里 fork：那是供应商已经执行完的调用。
+
+上下文溢出如果发生在还没有任何输出时，先记进 `overflowFailure`，不把这段错误流写进会话。后面若 `recoverOverflow` 成功，attempt 返回 `Outcome.Compacted()`，由 runner 换一个新的 assistant message ID 再试。
+
+## 一个逻辑 step 可以有多次物理尝试
+
+`runner/llm.ts` 用 `SessionStep.Outcome.$match` 决定这次尝试算不算把逻辑 step 往前推。
+
+<Figure
+  kind="状态图"
+  title="attempt 返回的五种 Outcome"
+  caption="Retry 保留逻辑 step 编号。Continue 和 Compacted 会新建 assistant message ID。"
+>
+  <Fanout
+    source={{ title: 'SessionStep.attempt', sub: '一次 llm.stream', kind: 'model', tone: 'violet' }}
+    targets={[
+      { label: 'Completed', title: 'needsContinuation', tone: 'lime' },
+      { label: 'Retry', title: '输出还没开始', tone: 'amber' },
+      { label: 'Continue', title: '不完整流的续写', tone: 'accent' },
+      { label: 'Compacted', title: 'overflow 已收缩', tone: 'rose' },
+      { label: 'RecoverFull', title: '同一条消息再试', tone: 'violet' },
+    ]}
+  />
+</Figure>
+
+<DataTable
+  head={['Outcome', '何时返回', 'runner 接着做什么']}
+  rows={[
+    ['Completed', '流和工具都落定', 'needsContinuation 为真就再进下一 step'],
+    ['Retry', '失败且还没有模型可见输出，retry.decide 允许', 'retry.wait 后仍用同一个 assistant message'],
+    ['Continue', '流已有输出，但是不完整，且没有权限拒绝', '写入一条 Synthetic，新建 assistant message'],
+    ['Compacted', '溢出且 recoverOverflow 把 compaction 跑完', 'recoverOverflow 置假，新建 assistant message'],
+    ['RecoverFull', 'Transport 要求 retry-full，且输出还没开始', '把 recoverContinuation 置假，同一个 assistant message 再试'],
+  ]}
+/>
+
+通用重试不消耗下一次 agent step 配额。配额用尽时，runner 把下一次请求的 `toolChoice` 设为 `"none"`，`executeTool` 会直接拒绝再跑工具。
+
+## 写进事件的是模型看得见的那一段
+
+attempt 结束时如果有 `finish` 或 `failure`，它再抓一次 snapshot，和开始时的 snapshot 做 `snapshots.files`。成功路径 publish `SessionEvent.Step.Ended`，带上 finish、usage、snapshot 和 files。失败路径走 `publishStepFailure`。
+
+用量用 `SessionUsage.calculateCost` 按模型价格和 token 算，记在这一次 step 上，不把前面的重试拆成多条模型可见的 step。

@@ -1,6 +1,6 @@
 OpenCode 的 `v2` 是一个本地编码代理。这份图谱讲解的是提交 `46172108`，不是浮动的分支尖端。
 
-阅读顺序是一条线。先看形状（`schema`、`protocol`），再看 `core` 如何把一次提示推进成一步模型调用，然后是 `server`、`client`、`sdk` 把这套运行时送出进程。外壳、插件和周边站点都在目录里，这一轮多数还是占位页。
+阅读顺序是一条线。先看 shape（`schema`、`protocol`），再看 `core` 如何把一次 prompt 推进成一次 step，然后读 `session`、`step`、`tools`、`compaction`。`server`、`client`、`sdk` 把这套运行时送出进程。外壳、插件和周边站点都在目录里，这一轮多数还是占位页。
 
 <Callout variant="key">
   一次模型调用是 step。turn 这个词留给以后的助手回合，正文不把一次调用写成 turn。
@@ -11,7 +11,7 @@ OpenCode 的 `v2` 是一个本地编码代理。这份图谱讲解的是提交 `
 
 这四条在后面的正文里不再换说法。
 
-- **形状只定义一次。** 对外形状在 `packages/schema` 和 `packages/protocol`。`packages/core` 不重新发明一套事件或 HTTP 形状。
+- **shape 只定义一次。** 对外 shape 在 `packages/schema` 和 `packages/protocol`。`packages/core` 不重新发明一套事件或 HTTP shape。
 - **依赖往下走。** `AGENTS.md` 规定运行时依赖从 Schema 到 Core 和 Protocol，再从 Core 和 Protocol 到 Server。Client 可以依赖 Schema 和 Protocol，不依赖 Core 或 Server。`sdk` 在进程内同时组成 Client、Core 和 Server。
 - **一步是一次模型调用。** 一步的持久记录只覆盖模型看得见的那一段。
 - **先记下不可再推导的事实。** 持久事件只记录不能从有序历史折出来的新事实。

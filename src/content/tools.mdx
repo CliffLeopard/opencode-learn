@@ -1,0 +1,48 @@
+工具不在 `packages/ai` 里把会话历史接上下一个 step。`LLMClient.stream` 只产出事件。本地工具的执行、权限拒绝和结果写回，由 core 的 runner 编排。
+
+两条源码：`session/runner/step.ts` 的 `executeTool`，和 `session/model-request.ts` 里交给 step 的 `prepared.executeTool`。
+
+## 调用从流里分叉
+
+`SessionStep.attempt` 读 `llm.stream` 的每一个事件。类型不是 `tool-call`，或者 `providerExecuted` 为真，就只 publish，不在本地执行。否则把一次 `executeTool` fork 出去，和流并行。
+
+<Figure
+  kind="数据流"
+  title="一个本地 tool-call 怎么回到会话"
+  caption="fork 发生在 Tool.Called 已经 publish 之后。权限拒绝不会被工具自己吞掉。"
+>
+  <Flow
+    dir="col"
+    nodes={[
+      { title: 'llm.stream', sub: 'tool-call，且不是 providerExecuted', kind: 'model', tone: 'violet' },
+      { title: 'publisher.publish', sub: '先让 Tool.Called 落进事件', kind: 'service', tone: 'accent', edge: 'publish 完成' },
+      { title: 'prepared.executeTool', sub: 'model-request.ts', kind: 'service', tone: 'lime', edge: 'fork' },
+      { title: 'tools.execute', sub: 'registry 按 Location', kind: 'service', tone: 'rose', edge: 'definitions' },
+      { title: 'ToolOutput.truncate', sub: '截断后再写回', kind: 'store', tone: 'amber', edge: '成功' },
+      { title: 'publisher.toolExecution', sub: '结果进入这条 assistant', kind: 'store', tone: 'accent', edge: '同一条消息' },
+    ]}
+  />
+</Figure>
+
+`executeTool` 看到 `toolChoice.type === "none"` 时直接返回 `Tool.Error`，消息是 `Tools are disabled after the maximum agent steps`。这是 step 配额用尽后的刹车，不是工具自己的策略。
+
+## Location 管 registry，不管 Session ID
+
+`AGENTS.md` 把 `SessionRunner`、模型解析、工具 registry、权限和文件系统都放在 Location 上。省略 `Location.workspaceID` 表示隐式的本地放置。显式的 workspace 身份留给以后的放置语义。工具和文件系统跟 Location 走。`SessionExecution` 按 Session ID 合并 wake，不按 Location 合并。
+
+<DataTable
+  head={['跟着谁', '什么', '不跟着谁']}
+  rows={[
+    ['Location', 'tool registry、权限、文件系统', '整个进程'],
+    ['Session ID', 'inbox、execution、claim', '工具实现'],
+    ['assistant message', '这一次 step 的 tool 结果', '下一次逻辑 step 的编号'],
+  ]}
+/>
+
+## 拒绝必须回到模型看得见的失败
+
+`model-request.ts` 把 `Permission.DeclinedError` 和 `QuestionTool.CancelledError` 从 defect 里捞回来，变成 `executeTool` 的失败。注释写明原因：这两个错误如果留在 defect 通道，工具可以用 catch 把「用户拒绝」变成一段模型可见的普通输出。
+
+attempt 在工具 fiber 都结束后做 `classifyToolExits`。拒绝会 `publisher.failTool`：Location 已经关闭时，消息是 `Interaction cancelled because the location shut down`；否则是用户拒绝或问题被取消。然后 `failAssistant(STEP_INTERRUPTED)`。Location 关闭且有拒绝时，Outcome 是 `Completed({ needsContinuation: true })`，让 drain 有机会收尾，而不是把进程级中断和用户拒绝混成一件事。
+
+流被中断时，`interruptTools` 会打断还在跑的 fiber。最终的工具事件和 Step 事件包在 `Effect.uninterruptibleMask` 里：工作可以被取消，写回不可以只写一半。

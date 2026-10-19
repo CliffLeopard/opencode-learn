@@ -32,8 +32,8 @@ const STATS = [
 const HIGHLIGHTS = [
   {
     icon: Boxes,
-    title: '形状只定义一次',
-    body: '对外形状在 schema 和 protocol。Core 不重新发明一套事件或 HTTP 形状。',
+    title: 'shape 只定义一次',
+    body: '对外 shape 在 schema 和 protocol。Core 不重新发明一套事件或 HTTP shape。',
     tone: 'accent',
   },
   {
@@ -59,13 +59,13 @@ const HIGHLIGHTS = [
 const PATHS = [
   {
     label: '第一次接触',
-    chapters: ['overview', 'schema', 'core'],
-    body: '先看全景和形状，再读 core 里一次 step 如何执行。',
+    chapters: ['overview', 'core', 'session'],
+    body: '先看包的边界，再看一次 prompt 怎样进 inbox。',
   },
   {
     label: '要看对外接口',
     chapters: ['protocol', 'server', 'client'],
-    body: '从 HTTP 契约看到 Server，再看到只依赖形状的 Client。',
+    body: '从 HTTP 契约看到 Server，再看到只依赖 shape 的 Client。',
   },
   {
     label: '要在进程内嵌入',
@@ -80,7 +80,7 @@ const PATHS = [
   {
     label: '要对齐用词',
     chapters: ['glossary', 'core', 'schema'],
-    body: 'step、turn、Session、inbox 各只指一件事。',
+    body: 'shape、step、turn、Session、inbox 各只指一件事。',
   },
 ] as const
 
@@ -109,10 +109,10 @@ export default function LandingPage() {
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-              这是给工程师看的技术图谱。顺序是形状和 protocol，然后 core 的一步，再 server / client /
-              sdk。把{' '}
+              这是给工程师看的技术图谱。顺序是 shape 和 protocol，然后 core 的 session、step、tools、compaction，再 server / client /
+              sdk。提交{' '}
               <code className="font-mono text-accent">46172108</code>{' '}
-              这一版每一层讲清楚：形状怎样定义一次，一次 step（一次模型调用）里发生了什么，对外接口怎样接到 core。
+              先把 core 讲清楚：一次 prompt 怎样进 inbox，一次 step 里发生了什么，工具和 compaction 落在哪一段。
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">

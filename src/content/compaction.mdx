@@ -1,0 +1,77 @@
+上下文放不下时，core 决定收缩路线，不把供应商的压缩协议写进会话循环。`SessionCompaction.compact` 在 `packages/core/src/session/compaction.ts`。原生机制留在 `@opencode/ai` 的 `LLMClient.compact`。
+
+<Callout variant="key" title="两条路线，一个入口">
+  <code>context.model.compaction?.type === "native"</code> 时走 <code>compactNatively</code>。
+  否则取名为 <code>compaction</code> 的 agent，走 <code>summarize</code>。
+</Callout>
+
+## compact 先决定做不做
+
+`SessionCompaction.compact` 读进程内的 settings，默认 `{ auto: true, keep: 15_000 }`。
+
+<Figure
+  kind="状态图"
+  title="一次 compact 调用的岔路"
+  caption="skipped 不是失败。overflow 仍受 auto 开关约束：自动压缩关掉时，只有 manual 会跑。"
+>
+  <Fanout
+    source={{ title: 'SessionCompaction.compact', sub: 'trigger.reason', kind: 'service', tone: 'amber' }}
+    targets={[
+      { label: 'skipped', title: 'auto 关，或还没到 ceiling', tone: 'lime' },
+      { label: 'native', title: 'model.compaction.type', tone: 'violet' },
+      { label: 'summary', title: 'compaction agent', tone: 'accent' },
+    ]}
+  />
+</Figure>
+
+`due` 还有两道闸。最后一条消息已经是完成的 compaction 时，返回 false，让 runner 先按这个 checkpoint 重装请求。原生窗口还没有一次带测量的响应时，也不要凭空估计。
+
+预算：`overflow` 用当前估计再乘 `SHRINK_STEPS[0]`，并且不超过 ceiling。其它原因用 ceiling。模型窗口未知时，自动压缩不会被触发，但请求仍用 `UNKNOWN_WINDOW` 算出一个瞄准的大小。
+
+## summary 留下 checkpoint，native 留下 providerContext
+
+`summarize` 上面的注释把历史切成 exchange。E 是一轮用户消息和它的回复，S 是一份 summary。`keep` 是 checkpoint 里保留的最近 token 数，默认 15000。
+
+第一次摘要把较老的 exchange 收成 S1，最近的 `keep` 留在旁边。再摘要时，新的 S2 覆盖 S1 和中间那些 exchange，最近的一段仍留在 checkpoint 里。之后的模型请求用一条 user 消息打开：
+
+```text
+<conversation-checkpoint>
+  <summary>…</summary>
+  <recent-context>…</recent-context>
+</conversation-checkpoint>
+```
+
+native 路线不走这个模板。`compactNatively` 要求稳定的、配好的 endpoint。注释写明：endpoint 必须来自 provider/model 设置，不能来自一次 `model.request` 改写。core 仍拥有路线来源、请求收缩、重试、中断、用量和 checkpoint。供应商的 compact 调用留在 `LLMClient.compact` 后面。
+
+## 每次物理尝试之前先问 auto
+
+`SessionRunner.runStep` 在调用 `SessionStep.attempt` 之前，先 `compaction.compact({ reason: "auto", context: loaded })`。`skipped` 就继续准备模型请求。`completed` 会新建 assistant message ID，然后 `continue`，这一轮不调用模型。`failed` 直接变成 `StepFailedError`。
+
+所以自动压缩不是 step 失败后的补救，而是每次物理尝试前的门槛。overflow 才是失败之后的那条路。
+
+## overflow 从 step 里进来
+
+`SessionStep.attempt` 在输出还没开始、且失败是上下文溢出时，调用 `input.recoverOverflow`。runner 把它接成：
+
+`compaction.compact({ reason: "overflow", context: loaded })`，并且只在结果 `status === "completed"` 时让 attempt 返回 `Outcome.Compacted()`。
+
+返回之后 runner 把 `recoverOverflow` 置为 false，并新建 assistant message ID。同一次逻辑 step 不会连续做第二次 overflow compaction。
+
+手动压缩走 inbox。`advanceToStep` 看到下一项类型是 `compaction` 时，先 publish `InboxDelivered`，再 publish `SessionEvent.Compaction.Started`，reason 为 `"manual"`。
+
+## 重启靠 claim，不靠恰好一次
+
+`session/execution.ts` 在 drain 开始时，用 `claimOnCommit` 把 `store.claim(sessionID)` 和 `SessionEvent.Execution.Started` 放进同一个事务。这是写前标记：进程忙着处理这个 Session。
+
+<DataTable
+  head={['结束方式', 'claim', '事件']}
+  rows={[
+    ['成功', 'releaseOnCommit', 'Execution.Succeeded'],
+    ['失败', 'releaseOnCommit', 'Execution.Failed'],
+    ['用户或其它中断', 'releaseOnCommit，并 jobs.cancel', 'Execution.Interrupted'],
+    ['shutdown', '保留 claim', 'Execution.Interrupted，reason=shutdown'],
+    ['进程死掉，没有拆卸', 'claim 留在库里', '启动时恢复 time_suspended 仍在、且没有 parent_id 的 Session'],
+  ]}
+/>
+
+claim 是恢复标记。它不是集群所有权，不是 fencing，也不是恰好一次。`SessionRunCoordinator` 在实现聚类之前保持进程本地。不同 Session 可以并行；同一个 Session 的 wake 会合并。

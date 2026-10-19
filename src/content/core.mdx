@@ -1,28 +1,114 @@
-`packages/core` 拥有运行时行为和持久化。这一章只讲会话如何进入、一步如何执行、工具落在循环的哪一段、压缩和恢复各算什么。供应商协议在 `packages/ai`，这一轮还是占位页。
+`packages/core` 拥有执行和持久化。公开的 shape 和 durable event 载荷在 `packages/schema`。HTTP 操作在 `packages/protocol`。供应商协议、`llm.stream` 和 `LLMClient.compact` 在 `packages/ai`。core 使用这些东西，不平行再定义一套。
 
-<Callout variant="trap">
-  不要写 provider turn。一次模型调用是 step。turn 留给以后那个从提示晋升到会话将要空闲的助手回合。
-  —— <code>opencode/AGENTS.md</code>
+这一章只画包的边界和 `src/session/` 的模块地图。prompt 怎么进 Session、一个 step 怎么跑、工具落在哪一段、compaction 怎么选，分别在后面四章。
+
+<Callout variant="rule" title="代码里怎么写，正文就怎么叫">
+  shape、step、turn、Session、Location、inbox、compaction 只在名词表里解释。正文用源码里的词，不另起中文别名。
 </Callout>
 
-## 提示如何进入会话
+## 谁拥有什么
 
-`Session.prompt(...)` 先发布 `session.inbox.enqueued`。投影插入一行持久的 `session_inbox`，然后才调度 `SessionExecution.wake(sessionID)`，除非 `resume: false` 要求只收入、不执行。投递发布 `session.inbox.delivered`，在同一事务里消费收件箱并插入可见消息。`session_inbox` 只保存还没消费的工作。
+`specs/v2/session.md` 把三件事拆开：Protocol 拥有公开操作，Schema 拥有 public shapes 和 durable events，Core 拥有执行和持久化。
 
-复用同一个 Session ID 会采纳已有会话。复用同一个用户或合成收件项 ID，在 Session 和类型都匹配时是幂等的：第一次收入获胜。
+<Figure
+  kind="架构图"
+  title="一次调用穿过的包"
+  caption="箭头是依赖方向。Client 停在 Schema 和 Protocol，不画进这张图。"
+>
+  <Layers
+    rows={[
+      {
+        title: '对外',
+        tone: 'violet',
+        chips: [
+          { title: 'protocol', sub: 'HTTP 操作与传输错误' },
+          { title: 'server', sub: '把 protocol 收成可监听的服务' },
+        ],
+      },
+      {
+        title: '运行',
+        tone: 'accent',
+        chips: [
+          { title: 'core', sub: 'Session、inbox、step、compaction' },
+          { title: 'ai', sub: 'LLMClient.stream / compact' },
+        ],
+      },
+      {
+        title: 'schema',
+        meta: 'public shapes',
+        tone: 'lime',
+        chips: [{ title: 'schema', sub: 'durable event 载荷' }],
+      },
+    ]}
+  />
+</Figure>
 
-## 一步如何执行
+shape 指 schema 里那些公开的领域类型和 durable event 载荷。
 
-一次 step 是一次逻辑上的模型调用。它的持久记录只覆盖模型看得见的那一段。一个逻辑 step 可以有生成前的通用重试、续写被拒之后的一次全上下文重试、不完整流的续写，或一次溢出压缩后的重建。通用重试保留逻辑 step 编号，不额外消耗 agent step 配额。不要把编排委托给一个只活在内存里的工具循环。
+<DataTable
+  head={['问题', '去哪个包', 'core 里对应的入口']}
+  rows={[
+    ['事件载荷长什么样', 'packages/schema', '只 publish，不重新声明字段'],
+    ['一次输入怎样被收下', 'packages/core/src/session', 'Session.prompt → SessionInbox.admit'],
+    ['模型调用怎样发出', 'packages/ai 的 LLMClient', 'SessionStep.attempt 调用 llm.stream'],
+    ['工具在哪执行', 'core 的 tool registry，按 Location', 'prepared.executeTool'],
+    ['上下文放不下时谁收缩', 'core 选择路线，ai 提供原生机制', 'SessionCompaction.compact'],
+  ]}
+/>
 
-每次物理尝试对应一次明确的 `llm.stream(request)`。持久续写之前要重新加载投影出来的历史。
+## session 目录怎么分
 
-## 工具在循环的哪一段
+`packages/core/src` 里还有 database、plugin、mcp、permission。这一轮的阅读路径只进 `src/session/`。其余目录仍是包地图上的名字，章节还是占位。
 
-工具注册表、权限和文件系统跟 Location 走，不跟整个进程走。省略 `Location.workspaceID` 表示隐式的本地放置。
+<Cards
+  cols={2}
+  items={[
+    {
+      title: 'session',
+      meta: 'prompt.ts · inbox.ts · execution.ts',
+      tone: 'accent',
+      body: 'Session.prompt 先把输入收进 inbox，再 wake。inbox 里只留还没消费的工作。',
+    },
+    {
+      title: 'step',
+      meta: 'runner/step.ts · runner/llm.ts · runner/retry.ts',
+      tone: 'violet',
+      body: 'SessionStep.attempt 是一次物理尝试。一个逻辑 step 可以包含重试、续写或一次 overflow compaction。',
+    },
+    {
+      title: 'tools',
+      meta: 'model-request.ts · runner/step.ts',
+      tone: 'lime',
+      body: '工具调用从 llm.stream 的 tool-call 事件里分叉出去。registry、权限和文件系统跟 Location 走。',
+    },
+    {
+      title: 'compaction',
+      meta: 'compaction.ts · execution.ts',
+      tone: 'amber',
+      body: 'SessionCompaction 在 summary 和 native 之间选。execution 的 claim 负责重启后的恢复标记。',
+    },
+  ]}
+/>
 
-## 压缩和恢复
+<Figure
+  kind="数据流"
+  scroll
+  title="从 prompt 到下一次模型可见的历史"
+  caption="每一跳的函数在后面四章展开。这里只固定顺序。"
+>
+  <Flow
+    nodes={[
+      { title: 'Session.prompt', sub: 'session.ts', kind: 'service', tone: 'accent' },
+      { title: 'SessionInbox.admit', sub: 'inbox.enqueued', kind: 'store', tone: 'lime', edge: '先记下' },
+      { title: 'SessionExecution.wake', sub: 'execution.ts', kind: 'service', tone: 'violet', edge: '再调度' },
+      { title: 'advanceToStep', sub: 'runner/llm.ts', kind: 'service', tone: 'accent', edge: '投递 inbox' },
+      { title: 'SessionStep.attempt', sub: 'llm.stream', kind: 'model', tone: 'violet', edge: '一次物理尝试' },
+      { title: 'executeTool', sub: 'Location 作用域', kind: 'service', tone: 'rose', edge: 'tool-call' },
+      { title: 'SessionCompaction', sub: 'overflow 或 auto', kind: 'store', tone: 'amber', edge: '放不下时' },
+    ]}
+  />
+</Figure>
 
-`SessionCompaction` 根据模型的 `compaction` 设置在摘要和原生压缩之间选择。原生压缩机制留在 `@opencode/ai` 的 `LLMClient.compact` 后面。Core 拥有路线来源、请求收缩、重试、中断、用量和检查点。
+## 这一轮不在 core 里讲的
 
-写前执行声明标记本进程的忙碌期，用来在重启后恢复。它不是集群所有权，也不是恰好一次。本地排空在实现聚类之前保持进程本地。
+`src/v1/` 是迁移来的旧配置。`src/database/migration/` 是表结构的历史，不是会话语义。plugin、mcp、pty 各自有目录章，仍是占位。供应商怎么组 HTTP 请求，去 `packages/ai`，那一章还没写。

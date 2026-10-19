@@ -1,0 +1,76 @@
+一次用户输入先成为 inbox 里的一行，然后才有机会变成模型看得见的消息。`Session.prompt` 把这两步拆开：先 admit，再决定要不要 wake。
+
+源码在 `packages/core/src/session/session.ts`、`inbox.ts`、`execution.ts`、`projector.ts`。
+
+<Callout variant="key" title="inbox 只存还没消费的工作">
+  <code>session.inbox.enqueued</code> 插入 <code>session_inbox</code>。
+  <code>session.inbox.delivered</code> 在同一事务里删掉这一行，并插入可见消息。已经投递的历史不在 inbox 里留副本。
+</Callout>
+
+## prompt 做的两件事
+
+`Session.prompt` 包在 `Effect.uninterruptibleMask` 里。它先 `get(sessionID)`。复用同一个 Session ID 会拿到已有 Session，不会再开一个同名会话。
+
+消息 ID 用调用方传入的 `input.id`，否则 `SessionMessage.ID.create()`。默认 delivery 是 `"steer"`。
+
+<Figure
+  kind="时序图"
+  title="Session.prompt 先收下，再决定要不要跑"
+  caption="resume === false 时序列停在 admit。wake 不是把模型调用塞进 prompt 里。"
+>
+  <Sequence
+    actors={[
+      { name: 'prompt', sub: 'Session.prompt', tone: 'accent' },
+      { name: 'inbox', sub: 'SessionInbox', tone: 'lime' },
+      { name: 'bus', sub: 'durable event', tone: 'violet' },
+      { name: 'exec', sub: 'SessionExecution', tone: 'amber' },
+    ]}
+    steps={[
+      { type: 'phase', label: '收下' },
+      { type: 'msg', from: 'prompt', to: 'inbox', label: 'reconcile' },
+      { type: 'note', label: '已有同一 Session、同一类型的 ID：第一次收入获胜，直接返回' },
+      { type: 'msg', from: 'prompt', to: 'inbox', label: 'SessionPrompt.prepare' },
+      { type: 'self', at: 'prompt', label: '若 session.revert 还在，先 SessionRevert.commit' },
+      { type: 'msg', from: 'inbox', to: 'bus', label: 'publish InboxEnqueued' },
+      { type: 'phase', label: '调度' },
+      { type: 'msg', from: 'prompt', to: 'exec', label: 'wake', style: 'async' },
+    ]}
+  />
+</Figure>
+
+`SessionInbox.admit` 再做一次 `reconcile`。没有旧行时才 `bus.publish(SessionEvent.InboxEnqueued)`。投影在 `projector.ts`：`SessionEvent.InboxEnqueued` 调用 `SessionInbox.projectAdmitted`，写入 `session_inbox`，并更新 Session 的 `time_updated`。
+
+跨 Session 或跨类型复用同一个 ID 会得到 `LifecycleConflict`，`Session.prompt` 把它收成 `PromptConflictError`。
+
+## delivery：steer 和 queue
+
+inbox 项的 delivery 只有 `"steer"` 和 `"queue"`。`AGENTS.md` 规定 prompt 默认 steer。
+
+<DataTable
+  head={['delivery', '谁在用', 'runner 什么时候看见它']}
+  rows={[
+    ['steer', 'Session.prompt 的默认值', 'step 边界上优先于普通排队项'],
+    ['queue', '显式排队', '空闲边界上，steer 处理完才轮到'],
+  ]}
+/>
+
+还没投递的项可以取消或改 delivery。`Session.cancelInbox` 和 `Session.queueInbox` 都走 `mutatePending`，只动仍在 pending 的行。
+
+## wake 不在 prompt 里跑模型
+
+`input.resume !== false` 时，`Session.prompt` 调用 `execution.wake(sessionID)`。`SessionExecution.wake` 就是 `SessionRunCoordinator.wake`。
+
+同一个 Session 上如果已经有一次 execution，新的 wake 只把 `pendingWake` 收成更宽的 scope（`"input"` 盖过 `"steer"`），不另起一条 drain。没有 execution 时才 `start`。不同 Session 可以同时跑。`SessionRunCoordinator` 是进程内的，按 Session ID 索引。
+
+`resume: false` 只把工作留在 inbox，不 wake。`Session.shell` 失败时发的 synthetic 通知就带了 `resume: false`。
+
+## delivered 发生在 runner，不发生在 prompt
+
+投递不在 `Session.prompt` 里。`runner/llm.ts` 的 `SessionRunner.advanceToStep` 取出 `SessionInbox.nextPromotable`，再 publish `SessionEvent.InboxDelivered`。
+
+`projector.ts` 对 `InboxDelivered` 调用 `SessionInbox.projectDelivered`。用户和 synthetic 项会 `insertMessage`；compaction 和 move 不插入普通消息。这样 inbox 行被消费，模型稍后读到的是投影出来的消息，不是 inbox 表本身。
+
+<Callout variant="trap" title="不要把这次 wake 写成 turn">
+  turn 留给以后那个从 prompt 被提升开始、直到 Session 将要空闲的助手回合。
+  <code>execution.ts</code> 的注释用 turn 描述 claim 标记的忙碌期。正文仍按 <code>AGENTS.md</code>：一次模型调用是 step。
+</Callout>
