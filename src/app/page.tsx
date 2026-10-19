@@ -99,7 +99,7 @@ export default function LandingPage() {
               这是给工程师看的技术图谱。顺序是「框架 → 运行核心 → 能力 → 产品外壳 →
               工程」，把{' '}
               <code className="font-mono text-accent">46172108</code>{' '}
-              这一版每一层讲清楚：插件怎样组成一个正在跑的 agent，一次 turn 里发生了什么，
+              这一版每一层讲清楚：插件怎样组成一个正在跑的 agent，一个 step（一次模型调用）里发生了什么，
               哪些 seam 可以换掉。
             </p>
 
