@@ -1,0 +1,13 @@
+`packages/sdk` 是进程内宿主。`packages/sdk/README.md` 写明它在内存里执行 Server 已经组装好的 HTTP 路由，不打开监听器，也不多一次网络跳转。
+
+<Callout variant="key">
+  <code>OpenCode.create()</code> 得到的 Promise API 与 <code>@opencode/client</code> 使用相同的值、错误和流。差别是路由没有离开进程。
+</Callout>
+
+## 它把谁拼在一起
+
+`AGENTS.md` 写明 `sdk` 组成 Client、Core 和 Server。因此依赖在这里汇合是刻意的。不要把这三侧的 import 下移到 Client。
+
+## 插件如何挂上
+
+创建时把 Promise 插件放进 `plugins`，或事后调用 `opencode.plugin(plugin)`。插件的加载约定在 `packages/plugin`，那一章仍是占位。这里只说明 SDK 是宿主，不是插件契约本身。

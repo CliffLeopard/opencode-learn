@@ -7,4 +7,5 @@ export const contentLoaders: Record<string, () => Promise<{ default: ComponentTy
   core: () => import('./core.mdx'),
   server: () => import('./server.mdx'),
   client: () => import('./client.mdx'),
+  sdk: () => import('./sdk.mdx'),
 }

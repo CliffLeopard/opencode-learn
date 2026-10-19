@@ -135,7 +135,7 @@ export const chapters: Chapter[] = [
     lede: '进程内宿主，在内存里跑 Server 的路由，没有网络一跳',
     group: '对外接口',
     keywords: ['sdk', '对外接口'],
-    status: 'stub',
+    status: 'written',
     source: 'opencode/packages/sdk',
   },
   {
