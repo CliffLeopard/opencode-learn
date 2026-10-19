@@ -19,6 +19,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import GithubSlugger from 'github-slugger'
 
+import { checkCatalog } from './catalog-check.mjs'
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const contentDir = path.join(root, 'src', 'content')
 
@@ -117,17 +119,41 @@ function parseSections(source) {
 const toc = {}
 const searchIndex = []
 
+const normalized = chapters.map((chapter) => ({
+  ...chapter,
+  status: chapter.status ?? 'written',
+}))
+
 const present = new Set(
   (await readdir(contentDir)).filter((name) => name.endsWith('.mdx')).map((name) => name.slice(0, -4)),
 )
 
-for (const chapter of chapters) {
-  if (!present.has(chapter.slug)) {
-    throw new Error(
-      `Chapter "${chapter.slug}" is registered in src/lib/chapters.ts but src/content/${chapter.slug}.mdx does not exist.`,
-    )
+const registrySource = await readFile(path.join(root, 'src/content/registry.ts'), 'utf8')
+const registrySlugs = new Set(
+  [...registrySource.matchAll(/^\s{2}(?:'([^']+)'|([A-Za-z0-9-]+)):\s*\(\)\s*=>/gm)].map(
+    (match) => match[1] ?? match[2],
+  ),
+)
+const errors = checkCatalog({ chapters: normalized, mdxSlugs: present, registrySlugs })
+if (errors.length > 0) {
+  throw new Error(errors.join('\n'))
+}
+
+for (const chapter of normalized) {
+  if (chapter.status === 'stub') {
+    toc[chapter.slug] = []
+    searchIndex.push({
+      slug: chapter.slug,
+      id: '',
+      chapter: chapter.title,
+      num: chapter.num,
+      group: chapter.group,
+      heading: chapter.title,
+      depth: 1,
+      text: `${chapter.lede} ${chapter.source} ${chapter.keywords.join(' ')}`.slice(0, SNIPPET_LIMIT),
+    })
+    continue
   }
-  present.delete(chapter.slug)
 
   const source = await readFile(path.join(contentDir, `${chapter.slug}.mdx`), 'utf8')
   const { headings, sections } = parseSections(source)
@@ -158,12 +184,6 @@ for (const chapter of chapters) {
       text: section.prose.join(' ').slice(0, SNIPPET_LIMIT),
     })
   }
-}
-
-if (present.size > 0) {
-  throw new Error(
-    `MDX files without a registry entry: ${[...present].join(', ')}. Add them to src/lib/chapters.ts.`,
-  )
 }
 
 await mkdir(path.join(root, 'src', 'generated'), { recursive: true })

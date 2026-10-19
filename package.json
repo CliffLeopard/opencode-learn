@@ -17,7 +17,8 @@
     "build": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build",
     "start": "node scripts/serve-static.mjs",
     "preview": "pnpm run build && node scripts/serve-static.mjs",
-    "typecheck": "node scripts/build-content-index.mjs && tsc --noEmit",
+    "test": "node --test scripts/catalog-check.test.mjs",
+    "typecheck": "node --test scripts/catalog-check.test.mjs && node scripts/build-content-index.mjs && tsc --noEmit",
     "install:isolated": "pnpm install --ignore-workspace"
   },
   "dependencies": {
