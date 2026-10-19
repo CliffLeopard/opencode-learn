@@ -46,28 +46,28 @@ const HIGHLIGHTS = [
 const PATHS = [
   {
     label: '第一次接触',
-    chapters: ['overview', 'cordis', 'lifecycle'],
-    body: '先看全景分层，再补 Cordis 的四个基本概念，然后直接读循环语义。',
+    chapters: ['overview', 'schema', 'core'],
+    body: '先看全景和形状，再读 core 里一次 step 如何执行。',
   },
   {
-    label: '要写一个插件',
-    chapters: ['plugins', 'tools', 'lifecycle'],
-    body: '先看插件怎么挂进树、怎么进入一次 turn，再对工具管线和循环语义。',
+    label: '要看对外接口',
+    chapters: ['protocol', 'server', 'client'],
+    body: '从 HTTP 契约看到 Server，再看到只依赖形状的 Client。',
   },
   {
-    label: '要加一个工具',
-    chapters: ['tools', 'context', 'session-log'],
-    body: '工具定义与管线阶段、提示装配顺序，以及结果如何落进会话日志。',
+    label: '要在进程内嵌入',
+    chapters: ['sdk', 'client', 'server'],
+    body: 'SDK 在内存里跑 Server 的路由，Client 不依赖 Core。',
   },
   {
-    label: '要换一个后端',
-    chapters: ['seams', 'execution', 'composition'],
-    body: '先搞清 seam 的三个角色，再看执行世界怎么实现，最后用 patch 一层层换掉它。',
+    label: '要看扩展点',
+    chapters: ['plugin', 'codemode', 'cli'],
+    body: '插件契约、受限解释器和命令入口。这三章仍是占位。',
   },
   {
-    label: '要做进程外集成',
-    chapters: ['integration', 'web', 'engineering'],
-    body: 'SDK / ACP / Webhook 的边界约束，Web 的 Typert 类型图，以及必须过的门禁。',
+    label: '要对齐用词',
+    chapters: ['glossary', 'core', 'schema'],
+    body: 'step、turn、Session、inbox 各只指一件事。',
   },
 ] as const
 
@@ -115,7 +115,7 @@ export default function LandingPage() {
                 />
               </Link>
               <Link
-                href="/docs/lifecycle"
+                href="/docs/core"
                 className="inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-5 py-2.5 text-[0.9375rem] text-fg transition-colors hover:border-accent-line hover:text-accent"
               >
                 直接看循环语义
