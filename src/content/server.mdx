@@ -1,0 +1,13 @@
+`packages/server` 把 Protocol 收成一个可监听的 HTTP 服务。依赖方向到这里为止：Server 可以使用 Core 和 Protocol。Client 不反向依赖 Server。
+
+<Callout variant="rule">
+  公开事件使用一条编码后的流，各自有独立队列。这个决定记录在 <code>specs/v2/event-stream-architecture.md</code>，实现落在 Server 的事件出口。
+</Callout>
+
+## 请求从哪里进来
+
+HTTP 入口从 `packages/server/src/api.ts` 和 `handlers.ts` 看起。处理器调用 Core 的会话操作，不在 Server 里再写一套 step 循环。循环的语义以 Core 那一章为准。
+
+## 事件怎么出去
+
+`event-feed.ts` 是对外的事件出口。客户端看到的是已经编码的流。重放的所有权和会话执行的所有权分开，这一点 `AGENTS.md` 已经写明，Server 不把二者并成一把锁。

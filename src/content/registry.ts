@@ -5,4 +5,5 @@ export const contentLoaders: Record<string, () => Promise<{ default: ComponentTy
   schema: () => import('./schema.mdx'),
   protocol: () => import('./protocol.mdx'),
   core: () => import('./core.mdx'),
+  server: () => import('./server.mdx'),
 }

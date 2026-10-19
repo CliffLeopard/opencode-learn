@@ -113,7 +113,7 @@ export const chapters: Chapter[] = [
     lede: '把 Protocol 收成可监听的 HTTP 服务',
     group: '对外接口',
     keywords: ['server', '对外接口'],
-    status: 'stub',
+    status: 'written',
     source: 'opencode/packages/server',
   },
   {
