@@ -124,7 +124,7 @@ export const chapters: Chapter[] = [
     lede: '只依赖 Schema 和 Protocol 的调用端，不依赖 Core 或 Server',
     group: '对外接口',
     keywords: ['client', '对外接口'],
-    status: 'stub',
+    status: 'written',
     source: 'opencode/packages/client',
   },
   {

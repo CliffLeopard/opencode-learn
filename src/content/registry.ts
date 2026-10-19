@@ -6,4 +6,5 @@ export const contentLoaders: Record<string, () => Promise<{ default: ComponentTy
   protocol: () => import('./protocol.mdx'),
   core: () => import('./core.mdx'),
   server: () => import('./server.mdx'),
+  client: () => import('./client.mdx'),
 }

@@ -1,0 +1,13 @@
+`packages/client` 是调用端。`AGENTS.md` 规定它的运行时代码可以依赖 Schema 和 Protocol，不能依赖 Core 或 Server。进程内把三侧拼在一起的是 `sdk`，不是 client。
+
+<Callout variant="warn">
+  公开的 Protocol 或 Server HttpApi 变了，就到 <code>packages/client</code> 执行 <code>bun run generate</code>。生成文件不手改。
+</Callout>
+
+## 两套调用表面
+
+`src/contract.ts` 描述调用契约。`src/effect` 和 `src/promise` 是同一契约的两种宿主。插件的 Effect 版本要扩展 `@opencode/client/effect/api` 上已有的客户端接口，不把已有函数再定义一遍。这条写在 `packages/plugin/AGENTS.md`。
+
+## 它不拥有的状态
+
+Client 不保存会话日志，也不决定一步何时重试。那些投影和 runner 在 Core。Client 只把请求送出去、把流读回来。
