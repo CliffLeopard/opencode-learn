@@ -8,7 +8,8 @@ import { GithubMark } from './github-mark'
 import { ReadingProgress } from './reading-progress'
 import { ThemeToggle } from './theme-toggle'
 
-const REPO = 'https://github.com/deepseek-ai/deepseek-harness'
+const REPO =
+  'https://github.com/anomalyco/opencode/tree/4617210822bdbb31e5749751afbfb4584ccedac8'
 
 /** Sticky header: drawer trigger, wordmark, search affordance and controls. */
 export function TopBar() {

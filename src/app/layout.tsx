@@ -8,21 +8,21 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'DeepSeek Harness 技术图谱',
-    template: '%s · DeepSeek Harness 技术图谱',
+    default: 'OpenCode 技术图谱',
+    template: '%s · OpenCode 技术图谱',
   },
   description:
-    'DeepSeek Harness（dsh）全栈技术教程：Cordis 插件框架、Agent 生命周期、会话日志、工具执行管线、seam、Web 与 SDK 架构，配套架构图、数据流图与生命周期图。',
+    'OpenCode v2 技术图谱，讲解提交 46172108 的架构、数据流与生命周期。',
   keywords: [
-    'DeepSeek Harness',
-    'dsh',
-    'Cordis',
-    'agent harness',
-    'agent loop',
-    'capability seam',
+    'OpenCode',
+    'opencode',
+    'OpenCode v2',
+    'agent',
     '架构图',
+    '数据流',
+    '生命周期',
   ],
-  applicationName: 'DeepSeek Harness 技术图谱',
+  applicationName: 'OpenCode 技术图谱',
 }
 
 export const viewport: Viewport = {

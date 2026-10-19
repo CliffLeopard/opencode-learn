@@ -86,19 +86,20 @@ export default function LandingPage() {
           <div className="animate-rise max-w-3xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-accent-line bg-accent-soft px-3 py-1 font-mono text-[0.7rem] tracking-[0.06em] text-accent uppercase">
               <span className="size-1.5 animate-pulse rounded-full bg-accent" aria-hidden />
-              Developer Preview · 全插件 Agent Harness
+              OpenCode v2 · 技术图谱
             </span>
 
             <h1 className="mt-6 text-4xl leading-[1.1] font-semibold tracking-tight text-fg-strong sm:text-6xl">
-              把 <span className="text-accent">DeepSeek Harness</span>
+              把 <span className="text-accent">OpenCode</span>
               <br />
               从架构读到细节
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
               这是给工程师看的技术图谱。顺序是「框架 → 运行核心 → 能力 → 产品外壳 →
-              工程」，把 <code className="font-mono text-accent">dsh</code>{' '}
-              每一层讲清楚：插件怎样组成一个正在跑的 agent，一次 turn 里发生了什么，
+              工程」，把{' '}
+              <code className="font-mono text-accent">46172108</code>{' '}
+              这一版每一层讲清楚：插件怎样组成一个正在跑的 agent，一次 turn 里发生了什么，
               哪些 seam 可以换掉。
             </p>
 
@@ -264,7 +265,7 @@ export default function LandingPage() {
             <code className="font-mono text-muted">packages/</code> 的现行文档，以源码为准。
           </p>
           <a href={REPO} target="_blank" rel="noreferrer" className="hover:text-fg">
-            deepseek-ai/deepseek-harness
+            anomalyco/opencode
           </a>
         </div>
       </footer>
